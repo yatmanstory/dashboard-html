@@ -1,6 +1,0 @@
-pyautogui==0.9.54
-fastapi
-uvicorn
-pandas
-python-multipart
- 
