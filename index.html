@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UA 대기열 대시보드</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            padding: 10px;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .controls {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .lunch-input {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .lunch-button {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .lunch-button:hover {
+            background-color: #45a049;
+        }
+
+        .lunch-notification {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 10px;
+            background-color: #f12d2d;
+            color: white;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            table-layout: fixed;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ddd;
+            min-width: 10px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* RT 열의 이모지 스타일 */
+        td:nth-child(6) {
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+        }
+
+        td:nth-child(6):hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        th {
+            background-color: #f2f2f2;
+            position: relative;
+            font-weight: bold;
+        }
+
+        th:hover {
+            cursor: col-resize;
+        }
+
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: #ccc;
+            cursor: col-resize;
+        }
+
+        /* 상태별 배경색 */
+        .status-available {
+            background-color: #14ee46; /* 연한 초록색 */
+            color: #155724;
+        }
+
+        .status-on-contact {
+            background-color: #fff565; /* 연한 주황색 */
+            color: #494d1d;
+        }
+
+        .status-coaching {
+            background-color: #e2d9f3; /* 연한 보라색 */
+            color: #4a2b8f;
+        }
+
+        .status-lunch, .status-break {
+            background-color: #ff9f0f; /* 연한 노란색 */
+            color: #27200a;
+        }
+
+        .status-offline {
+            background-color: #f8d7da; /* 연한 빨간색 */
+            color: #721c24;
+        }
+        
+        .status-other {
+            background-color: #e2e3e5; /* 연한 회색 */
+            color: #383d41;
+        }
+
+        /* 시간 초과 스타일 */
+        .time-exceeded {
+            background-color: #f8d7da; /* 연한 빨간색 */
+            color: #721c24;
+            font-weight: bold;
+        }
+
+        /* 점심 시간 임박 스타일 */
+        .lunch-soon {
+            background-color: #f12d2d;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* 점유율 스타일 */
+        .occupancy-high {
+            color: #dc3545; /* 붉은색 */
+            font-weight: bold;
+        }
+
+        .occupancy-medium {
+            color: #02ad10; /* 주황색 */
+            font-weight: bold;
+        }
+
+        .occupancy-low {
+            color: #c20707; /* 진한 초록색 */
+            font-weight: bold;
+        }
+
+        /* 칼럼 숨김 컨트롤 스타일 */
+        .column-controls {
+            margin: 10px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .column-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .column-checkbox input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        /* 숨겨진 칼럼 스타일 */
+        .hidden-column {
+            display: none;
+        }
+
+        /* 모바일 환경에서의 스타일 */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+
+            h1 {
+                font-size: 1.2rem;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th, td {
+                padding: 3px;
+            }
+
+            /* 모바일에서도 이모지 크기 유지 */
+            td:nth-child(6) {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>UA 대기열 대시보드</h1>
+    <div class="controls">
+        <textarea class="lunch-input" placeholder="엑셀에서 복사한 점심 시간 데이터를 여기에 붙여넣으세요"></textarea>
+        <button class="lunch-button">점심 시간 적용</button>
+    </div>
+    <div class="column-controls" id="columnControls">
+        <!-- 체크박스들이 여기에 동적으로 추가됩니다 -->
+    </div>
+    <div class="lunch-notification" id="lunchNotification"></div>
+    <div class="table-container">
+        <table border="1" id="agentTable">
+            <thead>
+                <tr>
+                    <th>이름</th>   
+                    <th>연결</th>
+                    <th>상태</th>
+                    <th>다음상태</th>
+                    <th>시간</th>
+                    <th>RT</th>
+                    <th>점유율</th>
+                    <th>CaAHT</th>
+                    <th>ChAHT</th>
+                    <th>처리호</th>                
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 데이터가 여기에 채워진다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 점심 시간 데이터 저장
+        let lunchSchedule = {};
+        let dismissedLunchAlerts = new Set(); // 해제된 알림 저장
+
+        // 상담사 이름과 conID 매핑
+        const agentMapping = {
+            "정다미": "con21488",
+            "권이현": "con75373",
+            "김명보": "con75417",
+            "송재혁": "con22514",
+            "전치용": "con85627",
+            "손지은": "con40568",
+            "정주환": "con73031",
+            "정지인": "con67102",
+            "최찬미": "con70004",
+            "이하늘": "con55155",
+            "윤지훈": "con47755",
+            "송창호": "con36753",
+            "복희정": "con55138",
+            "권아름": "con17538",
+            "박지선": "con06366",
+            "은유정": "con36550",
+            "최진호": "con32266",
+            "허정현": "con20027",
+            "강호철": "con25254",
+            "강주영": "con20546",
+            "이소형": "con51073",
+            "홍승완": "con72813",
+            "손은서": "con34777",
+            "김성수": "con15576",
+            "허소영": "con85772",
+            "이대희": "con00675",
+            "권선흥": "con04808",
+            "박동환": "con01845",
+            "이건희": "con42160",
+            "이상규": "con71643"
+        };
+
+        // 점심 시간 데이터 파싱
+        function parseLunchSchedule(text) {
+            const lines = text.split('\n');
+            const schedule = {};
+            
+            lines.forEach(line => {
+                const parts = line.trim().split('\t');
+                if (parts.length >= 2) {
+                    const name = parts[0];
+                    const time = parts[1];
+                    if (name && time) {
+                        schedule[name] = time;
+                    }
+                }
+            });
+            
+            return schedule;
+        }
+
+        // 시간 문자열을 분 단위로 변환
+        function timeToMinutes(timeStr) {
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':');
+            if (parts.length === 2) {
+                return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            }
+            return 0;
+        }
+
+        // 현재 시간과 점심 시간 비교
+        function checkLunchTime() {
+            const now = new Date();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            
+            Object.entries(lunchSchedule).forEach(([name, time]) => {
+                if (dismissedLunchAlerts.has(name)) return; // 해제된 알림은 무시
+                
+                const lunchMinutes = timeToMinutes(time);
+                const timeDiff = lunchMinutes - currentMinutes;
+                
+                if (timeDiff > 0 && timeDiff <= 15) {
+                    showNotification(`${name} 상담사의 점심 시간이 ${timeDiff}분 후입니다.`);
+                }
+            });
+        }
+
+        // 알림 표시
+        function showNotification(message) {
+            const notification = document.getElementById('lunchNotification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+
+        // 점심 시간 적용 버튼 클릭 이벤트
+        document.querySelector('.lunch-button').addEventListener('click', function() {
+            const input = document.querySelector('.lunch-input');
+            lunchSchedule = parseLunchSchedule(input.value);
+            dismissedLunchAlerts.clear(); // 새로운 데이터 적용 시 해제된 알림 초기화
+            showNotification('점심 시간이 적용되었습니다.');
+            
+            // 1분마다 점심 시간 체크
+            setInterval(checkLunchTime, 60000);
+            checkLunchTime(); // 즉시 한 번 체크
+        });
+
+        // 칼럼 숨김 상태 저장
+        let hiddenColumns = new Set();
+
+        // 칼럼 숨김 기능 초기화
+        function initializeColumnControls() {
+            const columnControls = document.getElementById('columnControls');
+            const table = document.getElementById('agentTable');
+            const headers = table.querySelectorAll('th');
+            
+            headers.forEach((header, index) => {
+                const checkbox = document.createElement('div');
+                checkbox.className = 'column-checkbox';
+                
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = true;
+                input.id = `column-${index}`;
+                
+                const label = document.createElement('label');
+                label.htmlFor = `column-${index}`;
+                label.textContent = header.textContent;
+                
+                checkbox.appendChild(input);
+                checkbox.appendChild(label);
+                columnControls.appendChild(checkbox);
+                
+                // 체크박스 상태 변경 이벤트
+                input.addEventListener('change', function() {
+                    const isChecked = this.checked;
+                    const columnIndex = index + 1; // nth-child는 1부터 시작
+                    
+                    if (isChecked) {
+                        hiddenColumns.delete(columnIndex);
+                    } else {
+                        hiddenColumns.add(columnIndex);
+                    }
+                    
+                    updateColumnVisibility();
+                });
+            });
+        }
+
+        // 칼럼 가시성 업데이트
+        function updateColumnVisibility() {
+            const table = document.getElementById('agentTable');
+            const headers = table.querySelectorAll('th');
+            
+            headers.forEach((header, index) => {
+                const columnIndex = index + 1;
+                const isHidden = hiddenColumns.has(columnIndex);
+                
+                if (isHidden) {
+                    header.classList.add('hidden-column');
+                    const dataCells = table.querySelectorAll(`td:nth-child(${columnIndex})`);
+                    dataCells.forEach(cell => cell.classList.add('hidden-column'));
+                } else {
+                    header.classList.remove('hidden-column');
+                    const dataCells = table.querySelectorAll(`td:nth-child(${columnIndex})`);
+                    dataCells.forEach(cell => cell.classList.remove('hidden-column'));
+                }
+            });
+        }
+
+        // DOM이 로드된 후 칼럼 컨트롤 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeColumnControls();
+            
+            // 기존의 셀 너비 조절 기능
+            const table = document.getElementById('agentTable');
+            const ths = table.querySelectorAll('th');
+            
+            ths.forEach((th, index) => {
+                const handle = document.createElement('div');
+                handle.className = 'resize-handle';
+                th.appendChild(handle);
+                
+                let startX, startWidth;
+                
+                handle.addEventListener('mousedown', function(e) {
+                    startX = e.pageX;
+                    startWidth = th.offsetWidth;
+                    
+                    document.addEventListener('mousemove', resize);
+                    document.addEventListener('mouseup', stopResize);
+                    e.preventDefault(); // 드래그 방지
+                });
+                
+                function resize(e) {
+                    const width = startWidth + (e.pageX - startX);
+                    if (width >= 10 && width <= 200) {
+                        // 해당 열의 모든 셀 너비 변경
+                        const newWidth = width + 'px';
+                        th.style.width = newWidth;
+                        const tds = table.querySelectorAll(`td:nth-child(${index + 1})`);
+                        tds.forEach(td => {
+                            td.style.width = newWidth;
+                        });
+                    }
+                }
+                
+                function stopResize() {
+                    document.removeEventListener('mousemove', resize);
+                    document.removeEventListener('mouseup', stopResize);
+                }
+            });
+        });
+
+        // RT 값을 이모지로 변환하는 함수
+        function getRTEmoji(rtValue) {
+            if (rtValue.includes('KO UA Experienced')) {
+                return '💬'; // 채팅 아이콘
+            } else if (rtValue.includes('KO UA Intermediate')) {
+                return '📞'; // 전화 아이콘
+            }
+            return rtValue; // 다른 값은 그대로 반환
+        }
+
+        // 상태에 따른 클래스 반환
+        function getStatusClass(status) {
+            if (!status || status === '-') return '';
+            status = status.toLowerCase();
+            if (status.includes('available')) {
+                return 'status-available';
+            } else if (status.includes('on contact')) {
+                return 'status-on-contact';
+            } else if (status.includes('coaching')) {
+                return 'status-coaching';
+            } else if (status.includes('lunch')) {
+                return 'status-lunch';
+            } else if (status.includes('break')) {
+                return 'status-break';
+            } else if (status.includes('offline')) {
+                return 'status-offline';
+            }
+            return 'status-other';
+        }
+
+        // 시간 문자열을 초 단위로 변환
+        function timeToSeconds(timeStr) {
+            if (!timeStr || timeStr === '-' || timeStr === '') return 0;
+            
+            // 시간 형식이 "HH:MM:SS" 또는 "MM:SS"인 경우 처리
+            const parts = timeStr.split(':');
+            
+            if (parts.length === 3) {
+                // HH:MM:SS 형식
+                return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+            } else if (parts.length === 2) {
+                // MM:SS 형식
+                return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            }
+            return 0;
+        }
+
+        // 시간이 16분 30초(990초)를 초과하는지 확인
+        function isTimeExceeded(timeStr) {
+            const seconds = timeToSeconds(timeStr);
+            return seconds > 990; // 16분 30초 = 990초
+        }
+
+        async function loadData() {
+            const response = await fetch("http://localhost:8000/data");
+            const data = await response.json();
+            const tableBody = document.querySelector("#agentTable tbody");
+            tableBody.innerHTML = "";
+
+            data.forEach(agent => {
+                const row = document.createElement("tr");
+                let agentName = ""; // 상담사 이름 저장
+
+                Object.entries(agent).forEach(([key, value]) => {
+                    const cell = document.createElement("td");
+                    
+                    // 이름 저장
+                    if (key === "이름") {
+                        agentName = value;
+                    }
+                    
+                    // RT 열인 경우 이모지로 변환
+                    if (key === "라우팅 프로필") {
+                        cell.textContent = getRTEmoji(value);
+                        // RT 열에 클릭 이벤트 추가
+                        cell.addEventListener('click', function() {
+                            const conID = agentMapping[agentName];
+                            if (conID) {
+                                const url = `https://adb-oac-prod.my.connect.aws/users#/?typeaheadLoginName=%22${conID}%22`;
+                                window.open(url, '_blank');
+                            }
+                        });
+                    } else {
+                        cell.textContent = value;
+                    }
+
+                    // 상태와 다음상태 열에 스타일 적용
+                    if (key === "상태" || key === "다음상태") {
+                        cell.className = getStatusClass(value);
+                    }
+
+                    // 시간 관련 열에 스타일 적용
+                    if (key === "시간" || key === "CaAHT" || key === "ChAHT") {
+                        if (isTimeExceeded(value)) {
+                            cell.className = 'time-exceeded';
+                        }
+                    }
+
+                    // 점유율 스타일 적용
+                    if (key === "점유율") {
+                        const occupancy = parseFloat(value);
+                        if (!isNaN(occupancy)) {
+                            if (occupancy >= 85) {
+                                cell.className = 'occupancy-high';
+                            } else if (occupancy >= 55) {
+                                cell.className = 'occupancy-medium';
+                            } else {
+                                cell.className = 'occupancy-low';
+                            }
+                        }
+                    }
+
+                    // 점심 시간 임박 체크
+                    if (key === "이름" && lunchSchedule[value] && !dismissedLunchAlerts.has(value)) {
+                        const now = new Date();
+                        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                        const lunchMinutes = timeToMinutes(lunchSchedule[value]);
+                        const timeDiff = lunchMinutes - currentMinutes;
+                        
+                        if (timeDiff > 0 && timeDiff <= 15) {
+                            cell.classList.add('lunch-soon');
+                            // 이름 셀 클릭 이벤트 추가
+                            cell.addEventListener('click', function() {
+                                cell.classList.remove('lunch-soon');
+                                dismissedLunchAlerts.add(value);
+                            });
+                        }
+                    }
+
+                    row.appendChild(cell);
+                });
+                tableBody.appendChild(row);
+            });
+
+            // 데이터 로드 후 칼럼 가시성 업데이트
+            updateColumnVisibility();
+        }
+
+        setInterval(loadData, 5000); // 5초마다 갱신
+        loadData(); // 처음 로딩
+    </script>
+</body>
+</html>
