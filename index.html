@@ -506,21 +506,31 @@
             return 'status-other';
         }
 
+        // 시간 데이터 저장용 (행별로 관리)
+        let agentTimeStates = []; // [{rowIdx, baseSeconds, displaySeconds, lastUpdate: Date}]
+
         // 시간 문자열을 초 단위로 변환
         function timeToSeconds(timeStr) {
             if (!timeStr || timeStr === '-' || timeStr === '') return 0;
-            
-            // 시간 형식이 "HH:MM:SS" 또는 "MM:SS"인 경우 처리
             const parts = timeStr.split(':');
-            
             if (parts.length === 3) {
-                // HH:MM:SS 형식
                 return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
             } else if (parts.length === 2) {
-                // MM:SS 형식
                 return parseInt(parts[0]) * 60 + parseInt(parts[1]);
             }
             return 0;
+        }
+
+        // 초를 시간 문자열로 변환 (항상 H:MM:SS, 시는 한 자리면 0 없이)
+        function secondsToTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+            return (
+                hours + ':' +
+                minutes.toString().padStart(2, '0') + ':' +
+                remainingSeconds.toString().padStart(2, '0')
+            );
         }
 
         // 시간이 16분 30초(990초)를 초과하는지 확인
@@ -529,6 +539,36 @@
             return seconds > 990; // 16분 30초 = 990초
         }
 
+        // --- 실시간 시간 증가 기능 추가 ---
+        let timeInterval = null;
+
+        function startAgentTimeTicker() {
+            if (timeInterval) clearInterval(timeInterval);
+            timeInterval = setInterval(() => {
+                // 1초마다 모든 행의 시간 displaySeconds를 1초씩 증가
+                agentTimeStates.forEach(state => {
+                    state.displaySeconds += 1;
+                    // 테이블에서 해당 셀을 찾아서 갱신
+                    const table = document.getElementById('agentTable');
+                    const row = table.tBodies[0].rows[state.rowIdx];
+                    if (row) {
+                        // "시간" 칼럼은 5번째(td[4])임
+                        const cell = row.cells[4];
+                        if (cell) {
+                            cell.textContent = secondsToTime(state.displaySeconds);
+                            // 시간 초과 스타일 적용
+                            if (state.displaySeconds > 990) {
+                                cell.classList.add('time-exceeded');
+                            } else {
+                                cell.classList.remove('time-exceeded');
+                            }
+                        }
+                    }
+                });
+            }, 1000);
+        }
+
+        // --- loadData 함수 수정 ---
         async function loadData() {
             try {
                 const response = await fetch("https://dashboard-server-8neo.onrender.com/data", {
@@ -539,31 +579,32 @@
                     },
                     mode: 'cors'
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 const tableBody = document.querySelector("#agentTable tbody");
-                tableBody.innerHTML = "";   
+                tableBody.innerHTML = "";
 
-                data.forEach(agent => {
+                agentTimeStates = []; // 새 데이터마다 초기화
+
+                data.forEach((agent, rowIdx) => {
                     const row = document.createElement("tr");
-                    let agentName = ""; // 상담사 이름 저장
+                    let agentName = "";
 
-                    Object.entries(agent).forEach(([key, value]) => {
+                    Object.entries(agent).forEach(([key, value], colIdx) => {
                         const cell = document.createElement("td");
-                        
+
                         // 이름 저장
                         if (key === "이름") {
                             agentName = value;
                         }
-                        
+
                         // RT 열인 경우 이모지로 변환
                         if (key === "라우팅 프로필") {
                             cell.textContent = getRTEmoji(value);
-                            // RT 열에 클릭 이벤트 추가
                             cell.addEventListener('click', function() {
                                 const conID = agentMapping[agentName];
                                 if (conID) {
@@ -580,8 +621,22 @@
                             cell.className = getStatusClass(value);
                         }
 
-                        // 시간 관련 열에 스타일 적용
-                        if (key === "시간" || key === "CaAHT" || key === "ChAHT") {
+                        // 시간 관련 열에 스타일 적용 및 실시간 시간 관리
+                        if (key === "시간") {
+                            // 시간 값 저장 (초 단위)
+                            const baseSeconds = timeToSeconds(value);
+                            agentTimeStates.push({
+                                rowIdx,
+                                baseSeconds,
+                                displaySeconds: baseSeconds,
+                                lastUpdate: new Date()
+                            });
+                            // 시간 초과 스타일 적용
+                            if (baseSeconds > 990) {
+                                cell.className = 'time-exceeded';
+                            }
+                        }
+                        if (key === "CaAHT" || key === "ChAHT") {
                             if (isTimeExceeded(value)) {
                                 cell.className = 'time-exceeded';
                             }
@@ -607,10 +662,9 @@
                             const currentMinutes = now.getHours() * 60 + now.getMinutes();
                             const lunchMinutes = timeToMinutes(lunchSchedule[value]);
                             const timeDiff = lunchMinutes - currentMinutes;
-                            
+
                             if (timeDiff > 0 && timeDiff <= 15) {
                                 cell.classList.add('lunch-soon');
-                                // 이름 셀 클릭 이벤트 추가
                                 cell.addEventListener('click', function() {
                                     cell.classList.remove('lunch-soon');
                                     dismissedLunchAlerts.add(value);
@@ -625,13 +679,18 @@
 
                 // 데이터 로드 후 칼럼 가시성 업데이트
                 updateColumnVisibility();
+
+                // 실시간 시간 증가 타이머 시작/갱신
+                startAgentTimeTicker();
+
             } catch (error) {
                 console.error('Error loading data:', error);
             }
         }
 
-        setInterval(loadData, 5000); // 5초마다 갱신
+        setInterval(loadData, 5000); // 5초마다 데이터 갱신
         loadData(); // 처음 로딩
     </script>
 </body>
 </html>
+
