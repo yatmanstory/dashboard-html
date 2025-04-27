@@ -51,8 +51,16 @@ def automate_quedata_copy_paste():
         pyautogui.hotkey('alt', 'tab')
         time.sleep(1)  # 창 전환을 위한 충분한 시간
         
+        # Ctrl+A로 전체 선택
+        pyautogui.hotkey('ctrl', 'a')
+        time.sleep(0.5)
+        
         # Ctrl+Shift+V로 붙여넣기
         pyautogui.hotkey('ctrl', 'shift', 'v')
+        time.sleep(0.5)
+        
+        # Enter 키 입력
+        pyautogui.press('enter')
         time.sleep(0.5)
         
         # Ctrl+S로 저장

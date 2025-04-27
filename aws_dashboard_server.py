@@ -15,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 # 업로드 인증 비밀번호
-UPLOAD_PASSWORD = "Dkzldkzl!2"  # 여기에만 너만 아는 비밀번호 세팅하기!
+UPLOAD_PASSWORD = "12345678"  # 여기에만 너만 아는 비밀번호 세팅하기!
 
 # --- CSV 업로드 API ---
 @app.post("/upload_csv")
