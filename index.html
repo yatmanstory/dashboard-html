@@ -127,9 +127,9 @@
             color: #494d1d;
         }
 
-        .status-coaching {
-            background-color: #00727a; /* 연한 보라색 */
-            color: #003f3f;
+        .status-coaching, .status-Nesting {
+            background-color: #e902b7; /* 연한 보라색 */
+            color: #140011;
         }
 
         .status-lunch, .status-break {
@@ -492,15 +492,15 @@
             status = status.toLowerCase();
             if (status.includes('available')) {
                 return 'status-available';
-            } else if (status.includes('on contact')) {
+            } else if (status.includes('on contact') || status.includes('outbound') || status.includes('bomgar') || status.includes('case')) {
                 return 'status-on-contact';
-            } else if (status.includes('coaching')) {
+            } else if (status.includes('coaching') || status.includes('nesting')) {
                 return 'status-coaching';
             } else if (status.includes('lunch')) {
                 return 'status-lunch';
             } else if (status.includes('break')) {
                 return 'status-break';
-            } else if (status.includes('offline')) {
+            } else if (status.includes('offline') || status.includes('after contact work')) {
                 return 'status-offline';
             }
             return 'status-other';
