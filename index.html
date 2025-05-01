@@ -128,8 +128,8 @@
         }
 
         .status-coaching, .status-Nesting {
-            background-color: #e902b7; /* 연한 보라색 */
-            color: #140011;
+            background-color: #d38cc4; /* 연한 보라색 */
+            color: #8b207b;
         }
 
         .status-lunch, .status-break {
@@ -137,9 +137,9 @@
             color: #27200a;
         }
 
-        .status-offline, .status-After-contact-work {
-            background-color: #f8d7da; /* 연한 빨간색 */
-            color: #721c24;
+        .status-offline, .status-After-contact-work, .status-missed {
+            background-color: #f1a2a8; /* 연한 빨간색 */
+            color: #e20c21;
         }
         
         .status-other {
@@ -500,7 +500,7 @@
                 return 'status-lunch';
             } else if (status.includes('break')) {
                 return 'status-break';
-            } else if (status.includes('offline') || status.includes('after contact work')) {
+            } else if (status.includes('offline') || status.includes('after contact work') || status.includes('missed')) {
                 return 'status-offline';
             }
             return 'status-other';
