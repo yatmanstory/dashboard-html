@@ -88,17 +88,43 @@
         </div>
     </div>
 </div>
+    
+<!-- Handled 상세 정보 모달 -->
+<div id="handledDetailsModal" class="modal">
+<div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <h3>Handled Details</h3>
+    <div class="agent-name-title">Agent: <span id="modalAgentName"></span></div>
+    <table id="handledDetailsTable" class="details-table">
+    <thead>
+        <tr>
+        <th>Category</th>
+        <th>Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- JavaScript에서 동적으로 채워질 내용 -->
+    </tbody>
+    <tfoot>
+        <tr>
+        <td><strong>Total</strong></td>
+        <td id="modalTotalHandled"><strong>0</strong></td>
+        </tr>
+    </tfoot>
+    </table>
+</div>
+</div>    
 
-    <!-- 설정(칼럼 숨기기) 팝업 -->
-    <div class="popup-overlay" id="settingsPopup">
-        <div class="popup-container">
-            <button class="close-popup" title="닫기">&times;</button>
-            <div class="popup-title">칼럼 설정</div>
-            <div class="popup-content settings-content" id="columnControls">
-                <!-- 체크박스들이 여기에 동적으로 추가됩니다 -->
-            </div>
+<!-- 설정(칼럼 숨기기) 팝업 -->
+<div class="popup-overlay" id="settingsPopup">
+    <div class="popup-container">
+        <button class="close-popup" title="닫기">&times;</button>
+        <div class="popup-title">칼럼 설정</div>
+        <div class="popup-content settings-content" id="columnControls">
+            <!-- 체크박스들이 여기에 동적으로 추가됩니다 -->
         </div>
     </div>
+</div>
 
     <!-- SharePoint에 업로드한 JavaScript 링크 -->
     <script src="https://adobe.sharepoint.com/:u:/r/sites/bugreports/Shared%20Documents/Acdashboard_admin/dashboard.js?csf=1&web=1&e=NncI2B"></script>
