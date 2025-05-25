@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UA 대기열 대시보드</title>
-    <!-- 리팩토링된 CSS 링크 -->
     <link rel="stylesheet" href="https://adobe.sharepoint.com/:u:/r/sites/bugreports/Shared%20Documents/Acdashboard_admin/styles.css?csf=1&web=1&e=YtzC2N">
 </head>
 <body>
@@ -12,17 +11,21 @@
     <div class="header">
         <h1>UA 대기열 대시보드</h1>
         <div class="button-container">
-            <button class="action-button lunch-modal-btn" title="점심 시간 설정">
+            <button class="btn btn-primary lunch-modal-btn" title="점심 시간 설정">
                 <span class="icon">🍽️</span> 점심 시간
             </button>
-            <button class="action-button settings-button" title="칼럼 설정">
+            <button class="btn btn-primary upsell-modal-btn" title="Upsell 데이터 설정">
+                <span class="icon">💰</span> Upsell
+            </button>
+            <button class="btn btn-secondary settings-button" title="칼럼 설정">
                 <span class="icon">⚙️</span> 설정
             </button>
         </div>
     </div>
 
-    <!-- 등록 알림 -->
-    <div class="lunch-notification" id="lunchNotification"></div>   
+    <!-- 점심 시간 알림 -->
+    <div id="lunchNotification" class="notification" ></div>
+    <div id="upsellNotification" class="notification"></div>   
 
     <!-- 상태 요약 정보 추가 -->
     <div class="status-summary" id="statusSummary">
@@ -32,10 +35,14 @@
         <span class="summary-item break">Break: <span class="count">0</span></span>
         <span class="summary-item coaching">Coaching: <span class="count">0</span></span>
     </div>
+    <!-- 개발 모드 표시기 추가 -->
+<div id="dev-indicator" style="position: fixed; top: 10px; right: 10px; background: #f70f0f; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; z-index: 9999; display: none;">
+    🔧 개발 모드
+</div>
 
     <!-- 테이블 영역 -->
     <div class="table-container">
-        <table border="1" id="agentTable">
+        <table border="1" id="agentTable" class="table">
             <thead>
                 <tr>
                     <th>ConID</th>
@@ -56,20 +63,22 @@
             </tbody>
         </table>
     </div>
- 
+
+<div id="upsellNotification" class="notification"></div>    
+
 <!-- Upsell 설정 모달창 -->
 <div id="upsellModal" class="modal">
     <div class="modal-content">
         <span class="close-modal">&times;</span>
         <h3>Upsell 데이터 설정</h3>
         <div class="modal-inner-content">
-            <textarea class="upsell-input" placeholder="엑셀에서 복사한 Upsell 데이터를 여기에 붙여넣으세요&#10;예: con12345&#9;7&#9;12"></textarea>
-            <button class="upsell-button">적용</button>
-            <div id="upsellNotification" class="notification"></div>
+            <textarea class="form-input upsell-input" placeholder="엑셀에서 복사한 Upsell 데이터를 여기에 붙여넣으세요&#10;예: con12345&#9;7&#9;12"></textarea>
+            <button class="btn btn-primary upsell-button">적용</button>
+            
             <!-- Upsell 테이블 추가 -->
             <div class="upsell-table-container">
                 <h3>현재 등록된 Upsell 데이터</h3>
-                <table id="upsellTable" class="upsell-table">
+                <table id="upsellTable" class="table upsell-table">
                     <thead>
                         <tr>
                             <th>ConID</th>
@@ -94,7 +103,7 @@
             <span class="close-modal">&times;</span>
             <h3>Handled Details</h3>
             <div class="agent-name-title">Agent: <span id="modalAgentName"></span></div>
-            <table id="handledDetailsTable" class="details-table">
+            <table id="handledDetailsTable" class="table details-table">
                 <thead>
                     <tr>
                         <th>Category</th>
@@ -102,7 +111,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- JavaScript에서 동적으로 채워질 내용 -->
+                    <!-- 내용 -->
                 </tbody>
                 <tfoot>
                     <tr>
@@ -120,13 +129,13 @@
         <span class="close-modal">&times;</span>
         <h3>점심 시간 설정</h3>
         <div class="modal-inner-content">
-            <textarea class="lunch-input" placeholder="엑셀에서 복사한 점심 시간 데이터를 여기에 붙여넣으세요&#10;예: 송재혁&#9;12:45"></textarea>
-            <button class="lunch-button">적용</button>
+            <textarea class="form-input lunch-input" placeholder="엑셀에서 복사한 점심 시간 데이터를 여기에 붙여넣으세요&#10;예: 송재혁&#9;12:45"></textarea>
+            <button class="btn btn-primary lunch-button">적용</button>
             
             <!-- 점심 시간 테이블 추가 -->
             <div class="lunch-table-container">
                 <h3>현재 등록된 점심 시간</h3>
-                <table id="lunchTable" class="lunch-table">
+                <table id="lunchTable" class="table lunch-table">
                     <thead>
                         <tr>
                             <th>ConID</th>
@@ -155,7 +164,13 @@
     </div>
 </div>
 
-    <!-- 리팩토링된 JavaScript 링크 -->
+    <!-- JavaScript 링크 -->
     <script src="https://adobe.sharepoint.com/:u:/r/sites/bugreports/Shared%20Documents/Acdashboard_admin/dashboard.js?csf=1&web=1&e=NncI2B"></script>
+        <script>
+        // 개발 모드 표시기 표시
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            document.getElementById('dev-indicator').style.display = 'block';
+        }
+    </script>    
 </body>
 </html>
