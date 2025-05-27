@@ -38,9 +38,78 @@
     <!-- 개발 모드 표시기 추가 -->
 <div id="dev-indicator" style="position: fixed; top: 10px; right: 10px; background: #f70f0f; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; z-index: 9999; display: none;">
     🔧 개발 모드
+
+
+</div>
+<div class="ques-section">
+    <div class="ques-header">
+        <h2>Queue</h2>
+        <div class="ques-controls">
+            <button class="btn btn-small toggle-details-btn" onclick="toggleQuesDetails()">
+                📋 상세 정보 보기
+            </button>
+            <button class="btn btn-small refresh-ques-btn" onclick="refreshQuesTable()">
+                🔄 새로고침
+            </button>
+            
+            <!-- ✅ 관리자 모드 버튼 추가 -->
+            <button id="adminModeBtn" class="btn btn-small admin-mode-btn" onclick="toggleAdminMode()">
+                🔐 관리자 모드
+            </button>
+        </div>
+    </div>
+    
+    <!-- ✅ 관리자 모드 인디케이터 추가 -->
+    <div id="adminModeIndicator" class="admin-mode-indicator hidden">
+        <span>👤 Agent 테이블 순서 변경 모드</span>
+        <button class="btn btn-small save-order-btn" onclick="saveAgentTableOrder()">
+            💾 순서 저장
+        </button>
+        <button class="btn btn-small reset-order-btn" onclick="resetAgentTableOrder()">
+            🔄 순서 초기화
+        </button>
+    </div>
+    
+    <div class="ques-table-container">
+        <table id="quesTable" class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Channels</th>
+                    <th>In Queue</th>
+                    <th>Oldest</th>
+                    <th>Scheduled</th>
+                    <th>Queued</th>
+                    <th>Handled</th>
+                    <th>Abandoned</th>
+                    <th>AHT</th>
+                    <th>SL 60sec</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 데이터가 여기에 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
 </div>
 
-    <!-- 테이블 영역 -->
+<!-- 비밀번호 입력 모달 -->
+<div id="quesPasswordModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <span class="close-modal" onclick="closeQuesPasswordModal()">&times;</span>
+        <h3>🔐 관리자 인증</h3>
+        <div class="modal-body">
+            <p style="margin-bottom: 15px;">Queue 상세 정보를 보려면 비밀번호를 입력하세요.</p>
+            <input type="password" id="quesPasswordInput" class="form-input" placeholder="비밀번호 입력" style="margin-bottom: 15px;">
+            <div class="password-buttons">
+                <button class="btn btn-primary" onclick="verifyQuesPassword()">확인</button>
+                <button class="btn btn-secondary" onclick="closeQuesPasswordModal()">취소</button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<!-- 테이블 영역 -->
     <div class="table-container">
         <table border="1" id="agentTable" class="table">
             <thead>
